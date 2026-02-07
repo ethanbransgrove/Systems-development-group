@@ -1,5 +1,5 @@
 from app.app import App
-from db.schema import create_tables, seed_users
+from db.schema import create_tables, seed_users, create_tenants_table
 from auth.login_view import LoginView
 
 from dashboards.admin import AdminDashboard
@@ -14,6 +14,7 @@ from app.session import session
 #print(session)
 
 create_tables()
+create_tenants_table()
 seed_users()
 app = App()
 

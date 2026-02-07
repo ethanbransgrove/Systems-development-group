@@ -22,6 +22,27 @@ def create_tables():
     conn.commit()
     conn.close()
 
+# Creates the tenants table
+def create_tenants_table():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(""" 
+    CREATE TABLE IF NOT EXISTS tenants (
+        tenant_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ni_number TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT NOT NULL,
+        occupation TEXT,
+        lease_start DATE,
+        lease_end DATE,
+        city TEXT NOT NULL
+    )
+    """)
+    conn.commit()
+    conn.close()
+
 
 # Testing the database and login works together
 def seed_users():
