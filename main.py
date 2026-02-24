@@ -28,5 +28,5 @@ app.register_page(ManagerDashboard)
 app.register_page(TenantDashboard)
 
 
-app.show_page("LoginView")
+app.show_page("LoginVie")
 app.mainloop()
