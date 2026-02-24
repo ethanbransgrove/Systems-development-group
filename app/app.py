@@ -42,3 +42,5 @@ class App(tk.Tk):
         for page in self.pages.values():
             if hasattr(page, "reset"):
                 page.reset()
+
+
