@@ -11,12 +11,9 @@ from dashboards.tenant import TenantDashboard
 
 from app.session import session
 
-#print(session)
-
 create_tables()
 create_tenants_table()
 seed_users()
-app = App()
 
 
 app.register_page(LoginView)
