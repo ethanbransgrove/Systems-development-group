@@ -29,6 +29,10 @@ app.register_page(TenantDashboard)
 
 
 app.show_page("LoginView")
+<<<<<<< HEAD
 app.mainloop()
 
 # Testing
+=======
+app.mainloop()
+>>>>>>> a1536bdc981d9f69bda50afd00f1c12918caae20
