@@ -30,3 +30,5 @@ app.register_page(TenantDashboard)
 
 app.show_page("LoginView")
 app.mainloop()
+
+# Test
