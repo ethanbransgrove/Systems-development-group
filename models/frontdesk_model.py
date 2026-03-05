@@ -1,4 +1,5 @@
 from database import get_connection
+from utils.auth import hash_password
 
 def get_available_apartments(branch_id):
 
@@ -64,11 +65,14 @@ def register_new_tenant(tenant_data, start_date, end_date, apartment_id, branch_
         """, (apartment_id,))
 
         # Create new tenant login (temp password = 123)
+
+        temp_password = hash_password("123")
+        
         cursor.execute("""
             INSERT INTO user
             (branch_id, name, email, password_hash, role, tenant_id)
             VALUES (%s, %s, %s, %s, 'TENANT', %s)
-        """, (branch_id, tenant_data[1], tenant_data[2], "123", tenant_id))
+        """, (branch_id, tenant_data[1], tenant_data[2], temp_password, tenant_id))
 
         conn.commit()
         conn.close()
