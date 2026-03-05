@@ -8,6 +8,8 @@ def create_maintenance_request(tenant_id, desc, priority):
         SELECT apartment_id 
         FROM lease
         WHERE tenant_id = %s 
+        AND status = 'ACTIVE'
+        LIMIT 1
     """, (tenant_id,))
 
     lease = cursor.fetchone()
@@ -16,7 +18,7 @@ def create_maintenance_request(tenant_id, desc, priority):
         conn.close()
         return False
     
-    apartment_id = lease[0]
+    apartment_id = lease["apartment_id"]
 
     query = """
         INSERT INTO maintenance_request (tenant_id, apartment_id, priority, description)

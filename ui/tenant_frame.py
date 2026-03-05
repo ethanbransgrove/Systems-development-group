@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
-from models.tenant_model import get_tenant_details
+from tkinter import messagebox, ttk
+from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices
 from models.payment_model import get_tenant_payments
 from models.maintenance_model import create_maintenance_request
 from models.complaint_model import create_complaint
@@ -20,6 +20,8 @@ class TenantFrame(tk.Frame):
         tk.Button(self, text="View Payment History", command=self.view_payments).pack(pady=5)
         tk.Button(self, text="Submit Maintenance Request", command=self.submit_maintenance).pack(pady=5)
         tk.Button(self, text="Submit Complaint", command=self.submit_complaint).pack(pady=5)
+
+        tk.Button(self, text="View My Invoices", command=self.view_invoices).pack(pady=5)
 
         tk.Button(self, text="Logout", command=self.logout).pack(pady=20)
 
@@ -99,6 +101,42 @@ class TenantFrame(tk.Frame):
         create_complaint(user["tenant_id"], "General Complaint")
 
         messagebox.showinfo("Success", "Complaint submitted.")
+
+
+    def view_invoices(self):
+
+        popup = tk.Toplevel(self)
+        popup.title("My Invoices")
+        popup.geometry("800x400")
+
+        user = self.controller.current_user
+        tenant_id = user["tenant_id"]
+
+        # Automatically update late invoices first
+        update_late_invoices(tenant_id)
+
+        invoices = get_tenant_invoices(tenant_id)
+
+        columns = ("ID", "Period", "Amount", "Due Date", "Status")
+
+        tree = ttk.Treeview(popup, columns=columns, show="headings")
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=120)
+
+        tree.pack(fill="both", expand=True)
+
+        for invoice in invoices:
+            period = f"{invoice['period_start']} to {invoice['period_end']}"
+
+            tree.insert("", "end", values=(
+                invoice["invoice_id"],
+                period,
+                f"£{invoice['amount_due']}",
+                invoice["due_date"],
+                invoice["status"]
+            ))
 
 
     def logout(self):
