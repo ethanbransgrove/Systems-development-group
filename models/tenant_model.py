@@ -37,6 +37,7 @@ def get_tenant_invoices(tenant_id):
 
     query = """
         SELECT  i.invoice_id,
+                i.lease_id,
                 i.period_start,
                 i.period_end,
                 i.amount_due,

@@ -1,10 +1,7 @@
+def validate_card_number(card_number):
+    card_number = card_number.replace(" ", "")
 
-
-def validate_email():
-    pass
-
-def validate_card_number():
-    pass
-
-def validate_phone():
-    pass
+    if card_number.isdigit() and len(card_number) == 16:
+        return True
+    
+    return False
