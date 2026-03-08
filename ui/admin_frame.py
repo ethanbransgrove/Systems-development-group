@@ -33,6 +33,7 @@ class AdminFrame(tk.Frame):
 
         popup = tk.Toplevel(self)
         popup.title("Create Staff User")
+        popup.geometry("600x400")
 
         tk.Label(popup, text="Name").pack()
         name_entry = tk.Entry(popup)
