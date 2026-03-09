@@ -15,7 +15,7 @@ def login_user(email, password):
     if not user:
         return None
 
-    stored_hash = user["password_hash"]
+    stored_hash = user["password"]
 
     if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
         return user

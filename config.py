@@ -1,6 +1,6 @@
-DB_HOST = "localhost"
+DB_HOST = "127.0.0.1"
 DB_USER = "root"
-DB_PASSWORD = "" 
-DB_NAME = "pams"
+DB_PASSWORD = "chipandpoppy1@" 
+DB_NAME = "paragorn"
 
 # Config to your own database details
