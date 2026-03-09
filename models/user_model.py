@@ -1,16 +1,23 @@
 from database import get_connection
+import bcrypt
+
 
 def login_user(email, password):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = """
-        SELECT * FROM user
-        WHERE email = %s AND password_hash = %s
-    """
-
-    cursor.execute(query, (email, password))
+    query = "SELECT * FROM user WHERE email = %s"
+    cursor.execute(query, (email,))
     user = cursor.fetchone()
 
     conn.close()
-    return user
+
+    if not user:
+        return None
+
+    stored_hash = user["password_hash"]
+
+    if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+        return user
+    
+    return None

@@ -16,3 +16,38 @@ def get_tenant_payments(tenant_id):
     payments = cursor.fetchall()
     conn.close()
     return payments
+
+
+def create_payment(invoice_id, lease_id, amount, card_number):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        last4 = card_number[-4:]
+
+        # Insert payment
+        cursor.execute("""
+            INSERT INTO payment
+            (invoice_id, lease_id, amount, payment_method, card_last4)
+            VALUES (%s, %s, %s, 'CARD', %s)
+        """, (invoice_id, lease_id, amount, last4))
+
+        # Update invoice status
+        cursor.execute("""
+            UPDATE invoice
+            SET status = 'PAID'
+            WHERE invoice_id = %s
+        """, (invoice_id,))
+
+        conn.commit()
+        conn.close()
+
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print("Payment error:", e)
+        return False
