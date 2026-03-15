@@ -54,3 +54,37 @@ def get_tenant_invoices(tenant_id):
 
     conn.close()
     return invoices
+
+
+def create_late_payment_notification(user_id, tenant_id):
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """ 
+        SELECT i.invoice_id, i.amount_due, i.due_date
+        FROM invoice i
+        JOIN lease l ON i.lease_id = l.lease_id
+        WHERE l.tenant_id = %s
+        AND i.status = 'LATE'
+    """
+
+    cursor.execute(query, (tenant_id,))
+    late_invoices = cursor.fetchall()
+
+    for invoice in late_invoices:
+
+        message = f"Invoice #{invoice['invoice_id']} (£{invoice['amount_due']}) was due on {invoice['due_date']} and is now late."
+
+        cursor.execute("""
+            INSERT INTO notification (user_id, message, type)
+            SELECT %s, %s, 'LATE_PAYMENT'
+            WHERE NOT EXISTS (
+                SELECT 1 FROM notification
+                WHERE user_id = %s
+                AND message = %s           
+            )
+        """, (user_id, message, user_id, message))
+
+    conn.commit()
+    conn.close()

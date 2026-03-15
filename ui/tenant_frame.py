@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices
-from models.payment_model import get_tenant_payments, create_payment
+from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices, create_late_payment_notification
+from models.payment_model import get_tenant_payments, create_payment, get_monthly_payments, get_neighbour_payment_totals
 from models.maintenance_model import create_maintenance_request
 from models.complaint_model import create_complaint
+from models.notification_model import get_unread_notifications, mark_notifications_read, get_all_notifications
 from utils.validators import validate_card_number
 
 
@@ -18,7 +19,13 @@ class TenantFrame(tk.Frame):
         self.info_label = tk.Label(self, text="")
         self.info_label.pack(pady=5)
 
+        tk.Button(self, text="🔔 View Notifications", command=self.view_notifications).pack(pady=5)
+
         tk.Button(self, text="View Payment History", command=self.view_payments).pack(pady=5)
+
+        tk.Button(self, text="View Monthly Payment Graph", command=self.view_monthly_graph).pack(pady=5)
+
+        tk.Button(self, text="Compare Payments with Neighbours", command=self.view_neighbour_graph).pack(pady=5)
         
         tk.Button(self, text="Submit Maintenance Request", command=self.submit_maintenance).pack(pady=5)
         
@@ -35,13 +42,42 @@ class TenantFrame(tk.Frame):
 
 
     def tkraise(self, *args, **kwargs):
+    
+        super().tkraise(*args, **kwargs)
+
+
         user = self.controller.current_user
+        
         if user:
-            tenant = get_tenant_details(user["tenant_id"])
+
+            tenant_id = user["tenant_id"]
+            user_id = user["user_id"]
+
+            tenant = get_tenant_details(tenant_id)
+
             self.info_label.config(
                 text=f"Welcome {tenant['name']} | Email: {tenant['email']}"
             )
-        super().tkraise(*args, **kwargs)
+
+            # Update invoice status
+            update_late_invoices(tenant_id)
+
+            # Create notifications if invoices are late
+            create_late_payment_notification(user_id, tenant_id)
+
+            # Get unread notifications
+            notifications = get_unread_notifications(user_id)
+
+            if notifications:
+
+                messages = "\n\n".join(n["message"] for n in notifications[:3])
+
+                messagebox.showwarning(
+                    "Notifications",
+                    messages
+                )
+
+                #mark_notifications_read(user_id)
 
 
     def view_payments(self):
@@ -234,7 +270,120 @@ class TenantFrame(tk.Frame):
         tk.Button(popup, text="Pay", command=submit_payment).pack(pady=20)
 
 
+    def view_notifications(self):
+
+        popup = tk.Toplevel(self)
+        popup.title("Notifications")
+        popup.geometry("650x400")
+
+        user = self.controller.current_user
+        user_id = user["user_id"]
+
+        notifications = get_all_notifications(user_id)
+
+        columns = ("Message", "Type", "Status", "Date")
+
+        tree = ttk.Treeview(popup, columns=columns, show="headings")
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=150)
+
+        tree.pack(fill="both", expand=True)
+
+        if not notifications:
+            tree.insert("", "end", values=("No notifications", "", "", ""))
+            return
+
+        for n in notifications:
+
+            status = "Unread" if n["is_read"] == 0 else "Read"
+
+            tree.insert("", "end", values=(
+                n["message"],
+                n["type"],
+                status,
+                n["create_at"]
+            ))
+
+        # Mark notifications as read when opened
+        mark_notifications_read(user_id)
+
+
+    def view_monthly_graph(self):
+
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        
+        popup = tk.Toplevel(self)
+        popup.title("Monthly Payments")
+        popup.geometry("700x500")
+
+        user = self.controller.current_user
+        tenant_id = user["tenant_id"]
+
+        data = get_monthly_payments(tenant_id)
+
+        if not data:
+            messagebox.showinfo("Info", "No payment data available.")
+            popup.destroy()
+            return
+        
+        months = [d["month"] for d in data]
+        totals = [d["total"] for d in data]
+
+        fig = plt.Figure(figsize=(6,4))
+        ax = fig.add_subplot(111)
+
+        ax.bar(months, totals)
+
+        ax.set_title("Monthly Rent Payments")
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Amount (£)")
+
+        canvas = FigureCanvasTkAgg(fig, popup)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
 
     def logout(self):
         self.controller.set_user(None)
         self.controller.show_frame("Login")
+
+
+    def view_neighbour_graph(self):
+        
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+        popup = tk.Toplevel(self)
+        popup.title("Neighbour Payment Comparison")
+        popup.geometry("700x500")
+
+        user = self.controller.current_user
+        tenant_id = user["tenant_id"]
+
+        data = get_neighbour_payment_totals(tenant_id)
+
+        if not data:
+            messagebox.showinfo("Info", "No data available.")
+            popup.destroy()
+            return
+        
+        names = [d["name"] for d in data]
+        totals = [float(d["total"]) for d in data]
+
+        fig = plt.Figure(figsize=(6,4))
+        ax = fig.add_subplot(111)
+
+        ax.bar(names, totals)
+
+        ax.set_title("Tenant Payments Comparison")
+        ax.set_xlabel("Tenants")
+        ax.set_ylabel("Total Paid (£)")
+
+        ax.tick_params(axis="x", rotation=45)
+
+        canvas = FigureCanvasTkAgg(fig, popup)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
