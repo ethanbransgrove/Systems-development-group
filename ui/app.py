@@ -15,12 +15,19 @@ class PAMSApp(tk.Tk):
         super().__init__()
 
         self.title("PAMS System")
-        self.geometry("1000x700")
+
+        self.state("zoomed")
+
+        self.minsize(1200, 800)
 
         self.current_user = None
 
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
+
+
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
 
