@@ -1,7 +1,13 @@
-from models.frontdesk_model import (get_available_apartments, register_new_tenant)
+# Student: [Your Name] | Student ID: [Your ID]
+
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import ttk
+from models.tenant_model import get_tenant_details
+from models.frontdesk_model import register_tenant, search_tenant
+from models.maintenance_model import create_maintenance_request, get_all_maintenance_requests
+from models.complaint_model import create_complaint, get_all_complaints
+from models.frontdesk_model import register_tenant
+
 
 class FrontDeskFrame(tk.Frame):
 
@@ -9,14 +15,38 @@ class FrontDeskFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        tk.Label(self, text="Front Desk Dashboard", font=("Arial", 20)).pack(pady=20)
-        
+        tk.Label(self, text="Front Desk Dashboard", font=("Arial", 20)).pack(pady=10)
+
         self.welcome_label = tk.Label(self, text="")
-        self.welcome_label.pack(pady=10)
+        self.welcome_label.pack(pady=5)
 
-        tk.Button(self, text="Register New Tenant", command=self.open_register_popup).pack(pady=10)
+        # --- Buttons ---
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(pady=10)
 
-        tk.Button(self, text="Logout", command=self.logout).pack(pady=20)
+        tk.Button(btn_frame, text="Register New Tenant", width=25,
+                  command=self.register_tenant_popup).grid(row=0, column=0, padx=10, pady=5)
+
+        tk.Button(btn_frame, text="Lookup Tenant", width=25,
+                  command=self.lookup_tenant_popup).grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Button(btn_frame, text="Submit Maintenance Request", width=25,
+                  command=self.submit_maintenance_popup).grid(row=1, column=0, padx=10, pady=5)
+
+        tk.Button(btn_frame, text="Submit Complaint", width=25,
+                  command=self.submit_complaint_popup).grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Button(btn_frame, text="View All Maintenance Requests", width=25,
+                  command=self.view_maintenance).grid(row=2, column=0, padx=10, pady=5)
+
+        tk.Button(btn_frame, text="View All Complaints", width=25,
+                  command=self.view_complaints).grid(row=2, column=1, padx=10, pady=5)
+
+        tk.Button(self, text="Logout", command=self.logout).pack(pady=10)
+
+        self.output_box = tk.Text(self, height=15, width=90)
+        self.output_box.pack(pady=10)
+
 
     def tkraise(self, *args, **kwargs):
         user = self.controller.current_user
@@ -24,114 +54,201 @@ class FrontDeskFrame(tk.Frame):
             self.welcome_label.config(text=f"Welcome {user['name']}")
         super().tkraise(*args, **kwargs)
 
+
+    # ------------------------------------------------------------------ #
+    #  Register New Tenant
+    # ------------------------------------------------------------------ #
+    def register_tenant_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Register New Tenant")
+        popup.geometry("500x650")
+
+        fields = {}
+
+        def add_field(label, key, row):
+            tk.Label(popup, text=label).grid(row=row, column=0, sticky="e", padx=10, pady=4)
+            entry = tk.Entry(popup, width=30)
+            entry.grid(row=row, column=1, padx=10, pady=4)
+            fields[key] = entry
+
+        add_field("NI Number *",        "ni_number",   0)
+        add_field("Full Name *",         "name",        1)
+        add_field("Phone Number *",      "phone",       2)
+        add_field("Email *",             "email",       3)
+        add_field("Occupation",          "occupation",  4)
+        add_field("References",          "references",  5)
+        add_field("Apartment Required",  "apt_req",     6)
+        add_field("Lease Period (mths)", "lease_period",7)
+        add_field("Lease Start Date",    "start_date",  8)
+        add_field("Monthly Rent (£)",    "monthly_rent",9)
+        add_field("Deposit (£)",         "deposit",     10)
+        add_field("Emergency Contact",   "emergency",   11)
+
+        def submit():
+            data = {k: v.get().strip() for k, v in fields.items()}
+
+            # Basic required field validation
+            required = ["ni_number", "name", "phone", "email"]
+            for field in required:
+                if not data[field]:
+                    messagebox.showerror("Error", f"{field.replace('_', ' ').title()} is required.")
+                    return
+
+            success = register_tenant(data)
+
+            if success:
+                messagebox.showinfo("Success", f"Tenant '{data['name']}' registered successfully.")
+                popup.destroy()
+            else:
+                messagebox.showerror("Error", "Registration failed. NI number may already exist.")
+
+        tk.Button(popup, text="Register Tenant", command=submit).grid(
+            row=12, column=0, columnspan=2, pady=20)
+
+
+    # ------------------------------------------------------------------ #
+    #  Lookup Tenant
+    # ------------------------------------------------------------------ #
+    def lookup_tenant_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Lookup Tenant")
+        popup.geometry("400x200")
+
+        tk.Label(popup, text="Search by Name or Email:").pack(pady=10)
+        search_entry = tk.Entry(popup, width=30)
+        search_entry.pack(pady=5)
+
+        def search():
+            term = search_entry.get().strip()
+            if not term:
+                messagebox.showerror("Error", "Please enter a search term.")
+                return
+
+            results = search_tenant(term)
+            self.output_box.delete("1.0", tk.END)
+
+            if not results:
+                self.output_box.insert(tk.END, "No tenants found.\n")
+            else:
+                for t in results:
+                    self.output_box.insert(
+                        tk.END,
+                        f"ID: {t['tenant_id']} | {t['name']} | {t['email']} | {t['phone']}\n"
+                    )
+            popup.destroy()
+
+        tk.Button(popup, text="Search", command=search).pack(pady=10)
+
+
+    # ------------------------------------------------------------------ #
+    #  Submit Maintenance Request (on behalf of tenant)
+    # ------------------------------------------------------------------ #
+    def submit_maintenance_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Submit Maintenance Request")
+        popup.geometry("500x400")
+
+        tk.Label(popup, text="Tenant ID:").pack(pady=5)
+        tenant_id_entry = tk.Entry(popup, width=20)
+        tenant_id_entry.pack(pady=5)
+
+        tk.Label(popup, text="Description:").pack(pady=5)
+        description_box = tk.Text(popup, height=5, width=40)
+        description_box.pack(pady=5)
+
+        tk.Label(popup, text="Priority:").pack(pady=5)
+        priority_var = tk.StringVar(value="LOW")
+        tk.OptionMenu(popup, priority_var, "LOW", "MEDIUM", "HIGH").pack(pady=5)
+
+        def submit():
+            tenant_id = tenant_id_entry.get().strip()
+            description = description_box.get("1.0", tk.END).strip()
+            priority = priority_var.get()
+
+            if not tenant_id or not description:
+                messagebox.showerror("Error", "Tenant ID and description are required.")
+                return
+
+            success = create_maintenance_request(tenant_id, description, priority)
+
+            if success:
+                messagebox.showinfo("Success", "Maintenance request submitted.")
+                popup.destroy()
+            else:
+                messagebox.showerror("Error", "No active lease found for this tenant.")
+
+        tk.Button(popup, text="Submit", command=submit).pack(pady=15)
+
+
+    # ------------------------------------------------------------------ #
+    #  Submit Complaint (on behalf of tenant)
+    # ------------------------------------------------------------------ #
+    def submit_complaint_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Submit Complaint")
+        popup.geometry("500x350")
+
+        tk.Label(popup, text="Tenant ID:").pack(pady=5)
+        tenant_id_entry = tk.Entry(popup, width=20)
+        tenant_id_entry.pack(pady=5)
+
+        tk.Label(popup, text="Complaint Description:").pack(pady=5)
+        description_box = tk.Text(popup, height=5, width=40)
+        description_box.pack(pady=5)
+
+        def submit():
+            tenant_id = tenant_id_entry.get().strip()
+            description = description_box.get("1.0", tk.END).strip()
+
+            if not tenant_id or not description:
+                messagebox.showerror("Error", "Tenant ID and description are required.")
+                return
+
+            create_complaint(tenant_id, description)
+            messagebox.showinfo("Success", "Complaint submitted.")
+            popup.destroy()
+
+        tk.Button(popup, text="Submit", command=submit).pack(pady=15)
+
+
+    # ------------------------------------------------------------------ #
+    #  View All Maintenance Requests
+    # ------------------------------------------------------------------ #
+    def view_maintenance(self):
+        requests = get_all_maintenance_requests()
+        self.output_box.delete("1.0", tk.END)
+
+        if not requests:
+            self.output_box.insert(tk.END, "No maintenance requests found.\n")
+            return
+
+        for r in requests:
+            self.output_box.insert(
+                tk.END,
+                f"ID: {r['request_id']} | Tenant: {r['tenant_id']} | "
+                f"Priority: {r['priority']} | Status: {r['status']} | {r['description'][:50]}\n"
+            )
+
+
+    # ------------------------------------------------------------------ #
+    #  View All Complaints
+    # ------------------------------------------------------------------ #
+    def view_complaints(self):
+        complaints = get_all_complaints()
+        self.output_box.delete("1.0", tk.END)
+
+        if not complaints:
+            self.output_box.insert(tk.END, "No complaints found.\n")
+            return
+
+        for c in complaints:
+            self.output_box.insert(
+                tk.END,
+                f"ID: {c['complaint_id']} | Tenant: {c['tenant_id']} | "
+                f"Status: {c['status']} | {c['description'][:60]}\n"
+            )
+
+
     def logout(self):
         self.controller.set_user(None)
         self.controller.show_frame("Login")
-
-    
-    def open_register_popup(self):
-
-        popup = tk.Toplevel(self)
-        popup.title("Register New Tenant")
-        popup.geometry("600x400")
-
-        branch_id = self.controller.current_user["branch_id"]
-
-
-        # Tenant Info
-        tenant_frame = tk.LabelFrame(popup, text="Tenant Information")
-        tenant_frame.pack(fill="x", padx=10, pady=10)
-
-        tk.Label(tenant_frame, text="NI Number").grid(row=0, column=0)
-        ni_entry = tk.Entry(tenant_frame)
-        ni_entry.grid(row=0, column=1)
-
-        tk.Label(tenant_frame, text="Name").grid(row=1, column=0)
-        name_entry = tk.Entry(tenant_frame)
-        name_entry.grid(row=1, column=1)
-        
-        tk.Label(tenant_frame, text="Email").grid(row=2, column=0)
-        email_entry = tk.Entry(tenant_frame)
-        email_entry.grid(row=2, column=1)
-
-        tk.Label(tenant_frame, text="Phone").grid(row=3, column=0)
-        phone_entry = tk.Entry(tenant_frame)
-        phone_entry.grid(row=3, column=1)
-
-        tk.Label(tenant_frame, text="Occupation").grid(row=4, column=0)
-        occupation_entry = tk.Entry(tenant_frame)
-        occupation_entry.grid(row=4, column=1)
-
-        tk.Label(tenant_frame, text="Reference").grid(row=5, column=0)
-        reference_entry = tk.Entry(tenant_frame)
-        reference_entry.grid(row=5, column=1)
-
-
-        # Lease Info
-        lease_frame = tk.LabelFrame(popup, text="Lease Information")
-        lease_frame.pack(fill="x", padx=10, pady=10)
-
-        tk.Label(lease_frame, text="Start Date (YYYY-MM-DD)").grid(row=0, column=0)
-        start_entry = tk.Entry(lease_frame)
-        start_entry.grid(row=0, column=1)
-
-        tk.Label(lease_frame, text="End Date (YYYY-MM-DD)").grid(row=1, column=0)
-        end_entry = tk.Entry(lease_frame)
-        end_entry.grid(row=1, column=1)
-
-
-        # Apartment Selection
-        apartment_frame = tk.LabelFrame(popup, text="Apartment Selection")
-        apartment_frame.pack(fill="x", padx=10, pady=10)
-
-        apartments = get_available_apartments(branch_id)
-
-        apartment_dict = {}
-        apartment_options = []
-
-        for apt in apartments:
-            display = f"{apt['apartment_number']} (£{apt['monthly_rent']})"
-            apartment_options.append(display)
-            apartment_dict[display] = apt['apartment_id']
-
-        tk.Label(apartment_frame, text="Select Apartment").grid(row=0, column=0)
-
-        apartment_combo = ttk.Combobox(apartment_frame, values=apartment_options, state="readonly")
-        apartment_combo.grid(row=0, column=1)
-
-
-        # Submit Function
-        def submit():
-            if not apartment_combo.get():
-                messagebox.showerror("Error", "Please select an apartment.")
-                return
-            
-            tenant_data = (
-                ni_entry.get(),
-                name_entry.get(),
-                email_entry.get(),
-                phone_entry.get(),
-                occupation_entry.get(),
-                reference_entry.get()
-            )
-
-            start_date = start_entry.get()
-            end_date = end_entry.get()
-
-            apartment_id = apartment_dict[apartment_combo.get()]
-
-            success = register_new_tenant(
-                tenant_data,
-                start_date,
-                end_date,
-                apartment_id,
-                branch_id
-            )
-
-            if success:
-                messagebox.showinfo("Success", "Tenant registered successfully.")
-                popup.destroy()
-            else:
-                messagebox.showerror("Error", "Registration failed.")
-
-        tk.Button(popup, text="Register Tenant", command=submit).pack(pady=20)

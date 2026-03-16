@@ -1,85 +1,69 @@
+# Student: [Your Name] | Student ID: [Your ID]
+
 from database import get_connection
-from utils.auth import hash_password
 
-def get_available_apartments(branch_id):
 
+def register_tenant(data):
+    """
+    Registers a new tenant and creates their lease record.
+    Returns True on success, False if NI number already exists.
+    """
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = """
-        SELECT a.apartment_id, a.apartment_number, a.monthly_rent
-        FROM apartment a
-        JOIN property p ON a.property_id = p.property_id
-        WHERE p.branch_id = %s
-        AND a.status = 'AVAILABLE'
-    """
-
-    cursor.execute(query, (branch_id,))
-    apartments = cursor.fetchall()
-
-    conn.close()
-    return apartments
-
-
-def register_new_tenant(tenant_data, start_date, end_date, apartment_id, branch_id):
-    
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        # Insert new tenant
-        cursor.execute("""
-            INSERT INTO tenant
-            (ni_number, name, email, phone, occupation, reference)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, tenant_data)
-
-        tenant_id = cursor.lastrowid
-
-        # Get monthly rent 
-        cursor.execute("""
-            SELECT monthly_rent
-            FROM apartment
-            WHERE apartment_id = %s
-        """, (apartment_id,))
-
-        result = cursor.fetchone()
-
-        if not result:
-            raise Exception("Apartment not found.")
-        
-        monthly_rent = result[0]
-
-        # Create lease
-        cursor.execute(""" 
-            INSERT INTO lease
-            (tenant_id, apartment_id, start_date, end_date, monthly_rent)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (tenant_id, apartment_id, start_date, end_date, monthly_rent))
-
-        # Update apartment status
-        cursor.execute("""
-            UPDATE apartment
-            SET status = 'OCCUPIED'
-            WHERE apartment_id = %s
-        """, (apartment_id,))
-
-        # Create new tenant login (temp password = 123)
-
-        temp_password = hash_password("123")
-        
-        cursor.execute("""
-            INSERT INTO user
-            (branch_id, name, email, password_hash, role, tenant_id)
-            VALUES (%s, %s, %s, %s, 'TENANT', %s)
-        """, (branch_id, tenant_data[1], tenant_data[2], temp_password, tenant_id))
-
-        conn.commit()
+    # Check NI number is unique
+    cursor.execute("SELECT tenant_id FROM tenant WHERE ni_number = %s", (data["ni_number"],))
+    if cursor.fetchone():
         conn.close()
-        return True
-    
-    except Exception as e:
-        conn.rollback()
-        conn.close()
-        print("Registration Error:", e)
         return False
+
+    # Insert tenant
+    cursor.execute("""
+        INSERT INTO tenant (ni_number, name, phone, email, occupation, references, emergency_contact)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data["ni_number"],
+        data["name"],
+        data["phone"],
+        data["email"],
+        data.get("occupation", ""),
+        data.get("references", ""),
+        data.get("emergency", "")
+    ))
+
+    tenant_id = cursor.lastrowid
+
+    # Insert lease if lease info provided
+    if data.get("start_date") and data.get("lease_period") and data.get("monthly_rent"):
+        cursor.execute("""
+            INSERT INTO lease (tenant_id, start_date, lease_period_months, monthly_rent, deposit, status)
+            VALUES (%s, %s, %s, %s, %s, 'ACTIVE')
+        """, (
+            tenant_id,
+            data["start_date"],
+            data["lease_period"],
+            data["monthly_rent"],
+            data.get("deposit", 0)
+        ))
+
+    conn.commit()
+    conn.close()
+    return True
+
+
+def search_tenant(term):
+    """
+    Search tenants by name or email (partial match).
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT tenant_id, name, email, phone
+        FROM tenant
+        WHERE name LIKE %s OR email LIKE %s
+    """, (f"%{term}%", f"%{term}%"))
+
+    results = cursor.fetchall()
+    conn.close()
+    return results
