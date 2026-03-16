@@ -2,6 +2,10 @@ from database import get_connection
 
 def create_notification(user_id, message, type="GENERAL"):
 
+    """
+
+    """
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -15,6 +19,10 @@ def create_notification(user_id, message, type="GENERAL"):
 
 
 def get_unread_notifications(user_id):
+
+    """
+    Fetches all the notifications where the status is unread
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -35,6 +43,10 @@ def get_unread_notifications(user_id):
 
 def mark_notifications_read(user_id):
     
+    """
+    Updates read status of the notification in the notifications tab once opened.
+    """
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -49,6 +61,10 @@ def mark_notifications_read(user_id):
 
 
 def get_all_notifications(user_id):
+
+    """
+    Facilitates the viewing of notifications for the tenant user to see.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

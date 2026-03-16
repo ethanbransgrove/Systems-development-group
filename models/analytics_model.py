@@ -2,6 +2,10 @@ from database import get_connection
 
 def get_late_payments_per_property():
 
+    """
+    Gathers data from the DB which is used in the tenant function "view_late_payments_graph()".
+    """
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 

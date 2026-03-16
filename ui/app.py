@@ -11,6 +11,10 @@ from ui.tenant_frame import TenantFrame
 
 class PAMSApp(tk.Tk):
 
+    """
+    Main PAMS system and loads the different dashboards.
+    """
+
     def __init__(self):
         super().__init__()
 

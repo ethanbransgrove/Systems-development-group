@@ -3,6 +3,11 @@ from database import get_connection
 
 def create_maintenance_request(tenant_id, description):
 
+    """
+    Handles maintenance request creation by the tenant. The status and priority of request are set to defaults
+    to be changed by staff.
+    """
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -27,6 +32,11 @@ def create_maintenance_request(tenant_id, description):
     
 
 def get_tenant_maintenance_requests(tenant_id):
+
+    """
+    Supports tenants being able to see a log of their previous request they have made and allows them to see the
+    progress of each request.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

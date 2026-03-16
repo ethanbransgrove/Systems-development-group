@@ -6,15 +6,25 @@ from models.maintenance_model import create_maintenance_request, get_tenant_main
 from models.complaint_model import create_complaint, get_tenant_complaints
 from models.notification_model import get_unread_notifications, mark_notifications_read, get_all_notifications
 from models.analytics_model import get_late_payments_per_property
-from utils.validators import validate_card_number
+from models.user_model import update_user_password
+from utils.validators import validate_card_number, check_password_strength
 
-
+"""  
+This is the Tenant dashboard as required by the Systems development group project. 
+Which is an extension of the ASD project.
+"""
 
 class TenantFrame(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+
+        """ 
+        This section of the class creates all the buttons which appear as part of the UI.
+        The they are in sets where the functions are aligned so the user can find the desired
+        action faster. 
+        """
 
         tk.Label(self, text="Tenant Dashboard", font=("Arial", 22, "bold")).pack(pady=10)
 
@@ -95,6 +105,12 @@ class TenantFrame(tk.Frame):
                   font=("Arial",10,"bold"),
                   command=self.view_notifications).pack(pady=5)
         
+        tk.Button(notification_frame,
+                  text="Change Password",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.change_password).pack(pady=5)
+        
 
         # Analytics Section
         analytics_frame = tk.LabelFrame(dashboard, text="Tenant Analytics", padx=20, pady=15)
@@ -131,7 +147,12 @@ class TenantFrame(tk.Frame):
 
 
     def tkraise(self, *args, **kwargs):
-    
+        
+        """ 
+        This function establishes who the tenant who has logged in is and makes sure the notification
+        system is up to date. 
+        """
+        
         super().tkraise(*args, **kwargs)
 
 
@@ -169,6 +190,11 @@ class TenantFrame(tk.Frame):
 
     def view_payments(self):
 
+        """ 
+        As a requirement tenants should be able to see there previous payments in table format.
+        This function displays all previous payments the tenant has made. 
+        """
+
         popup = tk.Toplevel(self)
         popup.title("Payment History")
         popup.geometry("600x400")
@@ -202,6 +228,14 @@ class TenantFrame(tk.Frame):
     
 
     def submit_maintenance(self):
+
+        """ 
+        Tenants have the ability to make maintenance request which are logged directly in the 
+        database so that staff can log the request.
+             
+        A tenant can describe what the problem is. If field is left empty this request wont be 
+        logged. 
+        """
 
         popup = tk.Toplevel(self)
         popup.title("New Maintenance Request")
@@ -246,6 +280,11 @@ class TenantFrame(tk.Frame):
 
     def submit_complaint(self):
 
+        """ 
+        Tenants can submit complaints directly to the database which can then be processed by staff.
+        Tenants can describe their complaint in the text box. If empty the complaint is not logged. 
+        """
+
         popup = tk.Toplevel(self)
         popup.title("Submit Complaint")
         popup.geometry("500x300")
@@ -277,6 +316,11 @@ class TenantFrame(tk.Frame):
 
     def view_invoices(self):
 
+        """
+        Tenants are able to see a log of their unpaid invoices and see wether they are unpaid, late, or paid.
+        This function pulls the tenant's current invoices straight from the database and displays them. 
+        """
+
         popup = tk.Toplevel(self)
         popup.title("My Invoices")
         popup.geometry("800x400")
@@ -291,7 +335,6 @@ class TenantFrame(tk.Frame):
 
         columns = ("ID", "Period", "Amount", "Due Date", "Status")
 
-        #tree = ttk.Treeview(popup, columns=columns, show="headings")
         self.invoice_tree = ttk.Treeview(popup, columns=columns, show="headings")
 
         for col in columns:
@@ -313,6 +356,15 @@ class TenantFrame(tk.Frame):
 
 
     def open_payment_popup(self):
+
+        """
+        This function is the way that tenants can pay there invoice.
+        
+        Displays a drop down menu for the tenant to select which invoice they would like to pay.
+        
+        Then the tenant can input their card details (which get validated) and then the payment is logged
+        in the database.
+        """
 
         popup = tk.Toplevel(self)
         popup.title("Pay Invoice")
@@ -386,6 +438,13 @@ class TenantFrame(tk.Frame):
 
     def view_notifications(self):
 
+        """
+        Tenants need to be aware that they may have a payment which is late which this function will
+        show them. 
+        Once the tenant opens the notification menu each notification status is set to "read" to signify
+        they have viewed this notification before.
+        """
+
         popup = tk.Toplevel(self)
         popup.title("Notifications")
         popup.geometry("650x400")
@@ -426,6 +485,15 @@ class TenantFrame(tk.Frame):
 
     def view_monthly_graph(self):
 
+        """
+        As part of the project tenants are able to see graphical representations of their payments.
+
+        This function displays a graph which shows how much money the tenant has paid in total that month
+
+        Tenants can decide to pay for multiple months upfront and therefore the graph can show a higher total
+        for said month.
+        """
+
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         
@@ -462,6 +530,13 @@ class TenantFrame(tk.Frame):
 
     def view_neighbour_graph(self):
         
+        """
+        As per the project tenants can also see a graphical representation of there payment totals as
+        compared to their neighbours in the same building.
+
+        This is a bar chart with the neighbour name and the total they have spent.
+        """
+
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -499,6 +574,16 @@ class TenantFrame(tk.Frame):
     
     
     def view_late_payments_graph(self):
+
+        """
+        As a requirement for the project tenants can see a graphical representation the total amount of 
+        late payments due in their building.
+
+        If all tenants in the building have paid their invoice then the graph will not display.
+
+        If a tenant in the building has a late payment due then this will display on the graph.
+        """
+
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -533,6 +618,16 @@ class TenantFrame(tk.Frame):
 
 
     def view_complaints(self):
+        
+        """ 
+        As tenants can submit complaints they also can see a log of previous complaints they have
+        submitted.
+
+        This function displays in table format all previous and active complaints.
+
+        Staff can also update the status of complaints which then get displayed in this table to show
+        the progress of the complaint. 
+        """
 
         popup = tk.Toplevel(self)
         popup.title("My Complaints")
@@ -561,6 +656,11 @@ class TenantFrame(tk.Frame):
 
 
     def view_maintenance_requests(self):
+
+        """ 
+        Tenants can see in table format a log of requests they have made.
+        They can also see the status of each request which gets updated by staff and shown here.
+        """
 
         popup = tk.Toplevel(self)
         popup.title("My Maintenance Requests")
@@ -591,6 +691,59 @@ class TenantFrame(tk.Frame):
                 r["status"],
                 r["reported_date"]
             ))
+
+
+    def change_password(self):
+        
+        """
+        When tenants are first logged to the system and put into the database they have a default password.
+
+        This function allows a tenant to update there password.
+
+        Also this function dynamically tells the tenant how strong or weak their password is.
+        """
+
+        popup = tk.Toplevel(self)
+        popup.title("Change Password")
+        popup.geometry("400x300")
+
+        tk.Label(popup, text="New Password").pack(pady=5)
+        password_entry = tk.Entry(popup, show="*")
+        password_entry.pack(pady=5)
+
+        tk.Label(popup, text="Confirm Password").pack(pady=5)
+        confirm_entry = tk.Entry(popup, show="*")
+        confirm_entry.pack(pady=5)
+
+        strength_label = tk.Label(popup, text="Strength: ")
+        strength_label.pack(pady=5)
+
+        def check_strength(event):
+            password = password_entry.get()
+            strength = check_password_strength(password)
+            strength_label.config(text=f"Strength: {strength}")
+
+        password_entry.bind("<KeyRelease>", check_strength)
+
+        def submit():
+
+            password = password_entry.get()
+            confirm = confirm_entry.get()
+
+            if password != confirm:
+                messagebox.showerror("Error", "Passwords do not match.")
+                return
+            
+            user = self.controller.current_user
+
+            success = update_user_password(user["user_id"], password)
+
+            if success:
+                messagebox.showinfo("Success", "Password updated successfully")
+            else:
+                messagebox.showerror("Error", "Password update failed")
+
+        tk.Button(popup, text="Update Password", command=submit).pack(pady=20)
 
 
     def logout(self):

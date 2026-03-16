@@ -3,6 +3,10 @@ from database import get_connection
 
 def create_complaint(tenant_id, description):
 
+    """
+    Logs a new complaint by a tenant and sets the status to submitted to later be changed by staff.
+    """
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -44,6 +48,10 @@ def create_complaint(tenant_id, description):
     
 
 def get_tenant_complaints(tenant_id):
+
+    """
+    Used in the tenant dashboard to display a table of previous complaints made by current tenant.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
