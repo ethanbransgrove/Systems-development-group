@@ -1,6 +1,12 @@
 from database import get_connection
 
 def get_tenant_payments(tenant_id):
+
+    """ 
+    Tenants can view their previous payments in table format in their dashboard
+    """
+
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -19,6 +25,10 @@ def get_tenant_payments(tenant_id):
 
 
 def create_payment(invoice_id, lease_id, amount, card_number):
+
+    """
+    Logs payments in database and updates invoice status
+    """
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -55,6 +65,10 @@ def create_payment(invoice_id, lease_id, amount, card_number):
 
 def get_monthly_payments(tenant_id):
 
+    """
+    Facilitates the graph creation for a tenant to view a log of payments they have made throughout their tenancy.
+    """
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -77,6 +91,11 @@ def get_monthly_payments(tenant_id):
 
 
 def get_neighbour_payment_totals(tenant_id):
+
+    """
+    Facilitates graph creation in the tenant dashboard to allow tenants to view how much there neighbours pay.
+    """
+
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

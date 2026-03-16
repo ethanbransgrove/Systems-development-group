@@ -23,6 +23,16 @@ def get_available_apartments(branch_id):
 
 def register_new_tenant(tenant_data, start_date, end_date, apartment_id, branch_id):
     
+    """
+    New tenant generation by front desk staff.
+
+    Staff need to input the required fields for a tenant.
+
+    Handles apartment assignment, lease creation and login details for new tenant. Also makes sure the
+    assigned room is now marked as occupied in the database.
+    """
+
+
     conn = get_connection()
     cursor = conn.cursor()
 

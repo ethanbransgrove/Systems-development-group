@@ -2,6 +2,11 @@ from database import get_connection
 from datetime import date
 
 def get_tenant_details(tenant_id):
+
+    """
+    Allows the tenant dashboard to only show information related the tenant that logged in.
+    """
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -13,6 +18,11 @@ def get_tenant_details(tenant_id):
 
 
 def update_late_invoices(tenant_id):
+
+    """
+    When a tenant logs in the system needs to check if the tenant has a late payment due. Checks the status of the 
+    tenant's invoice.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -31,6 +41,10 @@ def update_late_invoices(tenant_id):
 
 
 def get_tenant_invoices(tenant_id):
+
+    """
+    Facilitates the viewing of the logged-in tenant's invoices.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -57,6 +71,11 @@ def get_tenant_invoices(tenant_id):
 
 
 def create_late_payment_notification(user_id, tenant_id):
+
+    """
+    This function is ran after the update_late_invoices() function to add a notification to the system to then be
+    shown to the user in the notifications tab.
+    """
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
