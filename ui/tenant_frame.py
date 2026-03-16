@@ -2,10 +2,12 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices, create_late_payment_notification
 from models.payment_model import get_tenant_payments, create_payment, get_monthly_payments, get_neighbour_payment_totals
-from models.maintenance_model import create_maintenance_request
-from models.complaint_model import create_complaint
+from models.maintenance_model import create_maintenance_request, get_tenant_maintenance_requests
+from models.complaint_model import create_complaint, get_tenant_complaints
 from models.notification_model import get_unread_notifications, mark_notifications_read, get_all_notifications
+from models.analytics_model import get_late_payments_per_property
 from utils.validators import validate_card_number
+
 
 
 class TenantFrame(tk.Frame):
@@ -14,31 +16,118 @@ class TenantFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        tk.Label(self, text="Tenant Dashboard", font=("Arial", 20)).pack(pady=10)
-        
-        self.info_label = tk.Label(self, text="")
+        tk.Label(self, text="Tenant Dashboard", font=("Arial", 22, "bold")).pack(pady=10)
+
+        self.info_label = tk.Label(self, text="", font=("Arial", 11))
         self.info_label.pack(pady=5)
 
-        tk.Button(self, text="🔔 View Notifications", command=self.view_notifications).pack(pady=5)
+        # Main dashboard container
+        dashboard = tk.Frame(self)
+        dashboard.pack(expand=True)
 
-        tk.Button(self, text="View Payment History", command=self.view_payments).pack(pady=5)
+        dashboard.columnconfigure(0, weight=1)
+        dashboard.columnconfigure(1, weight=1)
 
-        tk.Button(self, text="View Monthly Payment Graph", command=self.view_monthly_graph).pack(pady=5)
+        # Payments Section
+        payments_frame = tk.LabelFrame(dashboard, text="Payments", padx=20, pady=15)
+        payments_frame.grid(row=0, column=0, padx=15, pady=10, sticky="nsew")
 
-        tk.Button(self, text="Compare Payments with Neighbours", command=self.view_neighbour_graph).pack(pady=5)
+        tk.Button(payments_frame,
+                  text="View Invoices",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.view_invoices).pack(pady=5)
+
+        tk.Button(payments_frame,
+                  text="Pay Invoice",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.open_payment_popup).pack(pady=5)
+
+        tk.Button(payments_frame,
+                  text="Payment History",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.view_payments).pack(pady=5)
+
+
+        # Maintenace Section
+        maintenance_frame = tk.LabelFrame(dashboard, text="Maintenance", padx=20, pady=15)
+        maintenance_frame.grid(row=0, column=1, padx=15, pady=10, sticky="nsew")
+
+        tk.Button(maintenance_frame,
+                  text="Submit Request",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.submit_maintenance).pack(pady=5)
+
+        tk.Button(maintenance_frame,
+                  text="View Requests",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.view_maintenance_requests).pack(pady=5)
+
+
+        # Complaints Section
+        complaint_frame = tk.LabelFrame(dashboard, text="Complaints", padx=20, pady=15)
+        complaint_frame.grid(row=1, column=0, padx=15, pady=10, sticky="nsew")
+
+        tk.Button(complaint_frame,
+                  text="Submit Complaint",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.submit_complaint).pack(pady=5)
+
+        tk.Button(complaint_frame,
+                  text="View Complaints",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.view_complaints).pack(pady=5)
+
+
+        # Notification Section
+        notification_frame = tk.LabelFrame(dashboard, text="Notifications", padx=20, pady=15)
+        notification_frame.grid(row=1, column=1, padx=15, pady=10, sticky="nsew")
+
+        tk.Button(notification_frame,
+                  text="View Notifications",
+                  width=20,
+                  font=("Arial",10,"bold"),
+                  command=self.view_notifications).pack(pady=5)
         
-        tk.Button(self, text="Submit Maintenance Request", command=self.submit_maintenance).pack(pady=5)
+
+        # Analytics Section
+        analytics_frame = tk.LabelFrame(dashboard, text="Tenant Analytics", padx=20, pady=15)
+        analytics_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, sticky="nsew")
+
+        tk.Button(analytics_frame,
+                  text="Monthly Payment Graph",
+                  width=25,
+                  font=("Arial",10,"bold"),
+                  command=self.view_monthly_graph).pack(pady=5)
         
-        tk.Button(self, text="Submit Complaint", command=self.submit_complaint).pack(pady=5)
+        tk.Button(analytics_frame,
+                  text="Late Payments Graph",
+                  width=25,
+                  font=("Arial",10,"bold"),
+                  command=self.view_late_payments_graph).pack(pady=5)
 
-        tk.Button(self, text="View My Invoices", command=self.view_invoices).pack(pady=5)
+        tk.Button(analytics_frame,
+                  text="Neighbour Payment Comparison",
+                  width=25,
+                  font=("Arial",10,"bold"),
+                  command=self.view_neighbour_graph).pack(pady=5)
         
-        tk.Button(self, text="Pay Invoice", command=self.open_payment_popup).pack(pady=5)
+        
 
-        tk.Button(self, text="Logout", command=self.logout).pack(pady=20)
-
-        #self.output_box = tk.Text(self, height=15, width=80)
-        #self.output_box.pack(pady=10)
+        # Logout button
+        tk.Button(self,
+                  text="Logout",
+                  width=25,
+                  font=("Arial",11,"bold"),
+                  bg="#d9534f",
+                  fg="white",
+                  command=self.logout).pack(pady=25)
 
 
     def tkraise(self, *args, **kwargs):
@@ -77,8 +166,6 @@ class TenantFrame(tk.Frame):
                     messages
                 )
 
-                #mark_notifications_read(user_id)
-
 
     def view_payments(self):
 
@@ -112,37 +199,39 @@ class TenantFrame(tk.Frame):
                 f"£{payment['amount']}",
                 payment["payment_date"]
             ))
-
+    
 
     def submit_maintenance(self):
 
         popup = tk.Toplevel(self)
         popup.title("New Maintenance Request")
-        popup.geometry("600x400")
+        popup.geometry("500x300")
 
-        tk.Label(popup, text="Description").pack(pady=5)
-        description_box = tk.Text(popup, height=5, width=40)
-        description_box.pack(pady=5)
+        form = tk.Frame(popup, padx=20, pady=20)
+        form.pack(fill="both", expand=True)
 
-        tk.Label(popup, text="Priority").pack(pady=5)
+        tk.Label(form, text="Maintenance Request", font=("Arial", 14)).grid(row=0, column=0, columnspan=2, pady=(0,15))
 
-        priority_var = tk.StringVar(value="LOW")
-        priority_menu = tk.OptionMenu(popup, priority_var, "LOW", "MEDIUM", "HIGH")
-        priority_menu.pack(pady=5)
+        tk.Label(form, text="Description:").grid(row=1, column=0, sticky="nw")
+
+        description_box = tk.Text(form, height=6, width=40)
+        description_box.grid(row=1, column=1, pady=5)
+
+        button_frame = tk.Frame(form)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=15)
 
         def submit():
+
             description = description_box.get("1.0", tk.END).strip()
-            priority = priority_var.get()
             user = self.controller.current_user
 
             if not description:
                 messagebox.showerror("Error", "Description cannot be empty.")
                 return
-            
+
             success = create_maintenance_request(
                 user["tenant_id"],
-                description,
-                priority
+                description
             )
 
             if success:
@@ -150,15 +239,40 @@ class TenantFrame(tk.Frame):
                 popup.destroy()
             else:
                 messagebox.showerror("Error", "No active lease found.")
-        
-        tk.Button(popup, text="Submit", command=submit).pack(pady=15)
+
+        tk.Button(button_frame, text="Submit", width=12, command=submit).pack(side="left", padx=10)
+        tk.Button(button_frame, text="Cancel", width=12, command=popup.destroy).pack(side="left", padx=10)
 
 
     def submit_complaint(self):
-        user = self.controller.current_user
-        create_complaint(user["tenant_id"], "General Complaint")
 
-        messagebox.showinfo("Success", "Complaint submitted.")
+        popup = tk.Toplevel(self)
+        popup.title("Submit Complaint")
+        popup.geometry("500x300")
+
+        tk.Label(popup, text="Complaint Description").pack(pady=10)
+
+        description_box = tk.Text(popup, height=6, width=40)
+        description_box.pack(pady=5)
+
+        def submit():
+
+            description = description_box.get("1.0", tk.END).strip()
+            user = self.controller.current_user
+
+            if not description:
+                messagebox.showerror("Error", "Description cannot be empty.")
+                return
+
+            success = create_complaint(user["tenant_id"], description)
+
+            if success:
+                messagebox.showinfo("Success", "Complaint submitted.")
+                popup.destroy()
+            else:
+                messagebox.showerror("Error", "Complaint submission failed.")
+
+        tk.Button(popup, text="Submit", command=submit).pack(pady=15)  
 
 
     def view_invoices(self):
@@ -346,11 +460,6 @@ class TenantFrame(tk.Frame):
         canvas.get_tk_widget().pack(fill="both", expand=True)
 
 
-    def logout(self):
-        self.controller.set_user(None)
-        self.controller.show_frame("Login")
-
-
     def view_neighbour_graph(self):
         
         import matplotlib.pyplot as plt
@@ -387,3 +496,103 @@ class TenantFrame(tk.Frame):
         canvas = FigureCanvasTkAgg(fig, popup)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
+    
+    
+    def view_late_payments_graph(self):
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+        popup = tk.Toplevel(self)
+        popup.title("Late Payments by Property")
+        popup.geometry("700x500")
+
+        data = get_late_payments_per_property()
+
+        if not data:
+            messagebox.showinfo("Info", "No late payments found.")
+            popup.destroy()
+            return
+        
+        properties = [d["name"] for d in data]
+        late_counts = [d["late_count"] for d in data]
+
+        fig = plt.Figure(figsize=(6,4))
+        ax = fig.add_subplot(111)
+
+        ax.bar(properties, late_counts)
+
+        ax.set_title("Late Payments per Property")
+        ax.set_xlabel("Property")
+        ax.set_ylabel("Number of Late Invoices")
+
+        ax.tick_params(axis="x")
+
+        canvas = FigureCanvasTkAgg(fig, popup)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
+
+    def view_complaints(self):
+
+        popup = tk.Toplevel(self)
+        popup.title("My Complaints")
+        popup.geometry("700x400")
+
+        user = self.controller.current_user
+        complaints = get_tenant_complaints(user["tenant_id"])
+
+        columns = ("ID", "Description", "Status", "Date")
+
+        tree = ttk.Treeview(popup, columns=columns, show="headings")
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=150)
+
+        tree.pack(fill="both", expand=True)
+
+        for c in complaints:
+            tree.insert("", "end", values=(
+                c["complaint_id"],
+                c["description"],
+                c["status"],
+                c["created_date"]
+            ))
+
+
+    def view_maintenance_requests(self):
+
+        popup = tk.Toplevel(self)
+        popup.title("My Maintenance Requests")
+        popup.geometry("750x400")
+
+        user = self.controller.current_user
+        requests = get_tenant_maintenance_requests(user["tenant_id"])
+
+        columns = ("ID", "Description", "Priority", "Status", "Date")
+
+        tree = ttk.Treeview(popup, columns=columns, show="headings")
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=150)
+
+        tree.pack(fill="both", expand=True)
+
+        if not requests:
+            tree.insert("", "end", values=("No requests found", "", "", "", ""))
+            return
+
+        for r in requests:
+            tree.insert("", "end", values=(
+                r["request_id"],
+                r["description"],
+                r["priority"],
+                r["status"],
+                r["reported_date"]
+            ))
+
+
+    def logout(self):
+        self.controller.set_user(None)
+        self.controller.show_frame("Login")

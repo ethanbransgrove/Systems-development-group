@@ -76,8 +76,6 @@ def get_monthly_payments(tenant_id):
     return data
 
 
-
-
 def get_neighbour_payment_totals(tenant_id):
 
     conn = get_connection()
