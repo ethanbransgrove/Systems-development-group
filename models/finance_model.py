@@ -27,8 +27,9 @@ def get_active_leases(branch_id):
 
 
 def add_one_month(date_obj):
+    
     """
-    Adds one month to a date manually (no external library)
+    When sending out an invoice to a tenant the date must be handled automatically which this helps to do.
     """
 
     month = date_obj.month + 1
@@ -49,6 +50,11 @@ def add_one_month(date_obj):
 
 
 def generate_next_invoice(lease_id):
+
+    """
+    Finance staff send out invoices to their assigned tenants and buildings.
+    """
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 

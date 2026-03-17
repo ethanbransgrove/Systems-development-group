@@ -5,6 +5,12 @@ from models.user_model import login_user
 
 class LoginFrame(tk.Frame):
 
+    """
+    Logs in a user based on their user details and logs a user into the correct dashboard based on role of user in
+    database.
+    """
+
+
     def __init__(self, parent, controller):
         super().__init__(parent)
 
