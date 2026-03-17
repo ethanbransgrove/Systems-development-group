@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices, create_late_payment_notification
+from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices, create_late_payment_notification, get_late_invoice_count
 from models.payment_model import get_tenant_payments, create_payment, get_monthly_payments, get_neighbour_payment_totals
 from models.maintenance_model import create_maintenance_request, get_tenant_maintenance_requests
 from models.complaint_model import create_complaint, get_tenant_complaints
@@ -30,6 +30,20 @@ class TenantFrame(tk.Frame):
 
         self.info_label = tk.Label(self, text="", font=("Arial", 11))
         self.info_label.pack(pady=5)
+
+        # Late payment warning banner. Hidden by default
+        self.warning_label = tk.Label(
+            self,
+            text="",
+            font=("Arial", 11, "bold"),
+            fg="white",
+            bg="#d9534f",
+            padx=10,
+            pady=5
+        )
+
+        self.warning_label.pack(pady=5, fill="x")
+        self.warning_label.pack_forget()
 
         # Main dashboard container
         dashboard = tk.Frame(self)
@@ -150,7 +164,7 @@ class TenantFrame(tk.Frame):
         
         """ 
         This function establishes who the tenant who has logged in is and makes sure the notification
-        system is up to date. 
+        system is up to date and checks for late payments to display a warning banner to the user. 
         """
         
         super().tkraise(*args, **kwargs)
@@ -174,6 +188,18 @@ class TenantFrame(tk.Frame):
 
             # Create notifications if invoices are late
             create_late_payment_notification(user_id, tenant_id)
+
+
+            late_count = get_late_invoice_count(tenant_id)
+
+            if late_count > 0:
+                self.warning_label.config(
+                    text=f"WARNING: You have {late_count} overdue invoice(s)"
+                )
+                self.warning_label.pack(pady=5, fill="x")
+            else:
+                self.warning_label.pack_forget()
+
 
             # Get unread notifications
             notifications = get_unread_notifications(user_id)
