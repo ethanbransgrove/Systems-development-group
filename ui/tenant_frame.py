@@ -228,8 +228,7 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         payments = get_tenant_payments(user["tenant_id"])
 
-        # FIX: Added Status column to match what payment_model now returns
-        columns = ("Amount", "Date", "Status")
+        columns = ("Amount", "Date")
 
         tree = ttk.Treeview(popup, columns=columns, show="headings")
 
@@ -244,14 +243,13 @@ class TenantFrame(tk.Frame):
         tree.pack(fill="both", expand=True)
 
         if not payments:
-            tree.insert("", "end", values=("No payments found", "", ""))
+            tree.insert("", "end", values=("No payments found", ""))
             return
 
         for payment in payments:
             tree.insert("", "end", values=(
                 f"£{payment['amount']}",
-                payment["payment_date"],
-                payment.get("status", "PAID")  # FIX: safely get status with fallback
+                payment["payment_date"]
             ))
     
 

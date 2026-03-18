@@ -11,7 +11,7 @@ def get_tenant_payments(tenant_id):
     cursor = conn.cursor(dictionary=True)
 
     query = """
-        SELECT p.amount, p.payment_date, p.status
+        SELECT p.amount, p.payment_date
         FROM payment p
         JOIN lease l ON p.lease_id = l.lease_id
         WHERE l.tenant_id = %s
