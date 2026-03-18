@@ -1,12 +1,6 @@
 from database import get_connection
 
 def get_tenant_payments(tenant_id):
-
-    """ 
-    Tenants can view their previous payments in table format in their dashboard.
-    FIX: Added p.status to SELECT so the payment history table doesn't crash.
-    """
-
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
