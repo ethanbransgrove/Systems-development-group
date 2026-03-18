@@ -107,3 +107,27 @@ def create_late_payment_notification(user_id, tenant_id):
 
     conn.commit()
     conn.close()
+
+
+def get_late_invoice_count(tenant_id):
+    
+    """
+    Helps to implement the late payment banner in the tenant dashboard.
+    Finds how many LATE payments a tenant has from the database.
+    """
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM invoice i
+        JOIN lease l ON i.lease_id = l.lease_id
+        WHERE l.tenant_id = %s
+        AND i.status = 'LATE'
+    """, (tenant_id,))
+
+    count = cursor.fetchone()[0]
+
+    conn.close()
+    return count
