@@ -7,7 +7,7 @@ from models.complaint_model import create_complaint, get_tenant_complaints
 from models.notification_model import get_unread_notifications, mark_notifications_read, get_all_notifications
 from models.analytics_model import get_late_payments_per_property
 from models.user_model import update_user_password
-from utils.validators import validate_card_number, check_password_strength
+from utils.validators import validate_card_number, validate_expiry, validate_cvv, check_password_strength
 
 """  
 This is the Tenant dashboard as required by the Systems development group project. 
@@ -202,13 +202,14 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         payments = get_tenant_payments(user["tenant_id"])
 
-        columns = ("Amount", "Date")
+        # FIX: Added Status column to match what payment_model now returns
+        columns = ("Amount", "Date", "Status")
 
         tree = ttk.Treeview(popup, columns=columns, show="headings")
 
         for col in columns:
             tree.heading(col, text=col)
-            tree.column(col, width=200)
+            tree.column(col, width=180)
 
         scrollbar = ttk.Scrollbar(popup, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -217,13 +218,14 @@ class TenantFrame(tk.Frame):
         tree.pack(fill="both", expand=True)
 
         if not payments:
-            tree.insert("", "end", values=("No payments found", ""))
+            tree.insert("", "end", values=("No payments found", "", ""))
             return
 
         for payment in payments:
             tree.insert("", "end", values=(
                 f"£{payment['amount']}",
-                payment["payment_date"]
+                payment["payment_date"],
+                payment.get("status", "PAID")  # FIX: safely get status with fallback
             ))
     
 
@@ -239,7 +241,7 @@ class TenantFrame(tk.Frame):
 
         popup = tk.Toplevel(self)
         popup.title("New Maintenance Request")
-        popup.geometry("500x300")
+        popup.geometry("500x320")
 
         form = tk.Frame(popup, padx=20, pady=20)
         form.pack(fill="both", expand=True)
@@ -251,12 +253,18 @@ class TenantFrame(tk.Frame):
         description_box = tk.Text(form, height=6, width=40)
         description_box.grid(row=1, column=1, pady=5)
 
+        # FIX: Re-added priority dropdown
+        tk.Label(form, text="Priority:").grid(row=2, column=0, sticky="w", pady=5)
+        priority_var = tk.StringVar(value="LOW")
+        tk.OptionMenu(form, priority_var, "LOW", "MEDIUM", "HIGH").grid(row=2, column=1, sticky="w", pady=5)
+
         button_frame = tk.Frame(form)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=15)
+        button_frame.grid(row=3, column=0, columnspan=2, pady=15)
 
         def submit():
 
             description = description_box.get("1.0", tk.END).strip()
+            priority = priority_var.get()  # FIX: capture priority
             user = self.controller.current_user
 
             if not description:
@@ -265,7 +273,8 @@ class TenantFrame(tk.Frame):
 
             success = create_maintenance_request(
                 user["tenant_id"],
-                description
+                description,
+                priority  # FIX: pass priority to model
             )
 
             if success:
@@ -368,7 +377,7 @@ class TenantFrame(tk.Frame):
 
         popup = tk.Toplevel(self)
         popup.title("Pay Invoice")
-        popup.geometry("500x350")
+        popup.geometry("500x420")  # FIX: increased height to fit new fields
 
         user = self.controller.current_user
         tenant_id = user["tenant_id"]
@@ -400,6 +409,15 @@ class TenantFrame(tk.Frame):
         card_entry = tk.Entry(popup)
         card_entry.pack(pady=5)
 
+        # FIX: Added expiry and CVV fields
+        tk.Label(popup, text="Expiry Date (MM/YY)").pack(pady=5)
+        expiry_entry = tk.Entry(popup, width=10)
+        expiry_entry.pack(pady=5)
+
+        tk.Label(popup, text="CVV (3 digits)").pack(pady=5)
+        cvv_entry = tk.Entry(popup, show="*", width=6)
+        cvv_entry.pack(pady=5)
+
         def submit_payment():
 
             selected = invoice_menu.current()
@@ -409,9 +427,20 @@ class TenantFrame(tk.Frame):
                 return
 
             card_number = card_entry.get()
+            expiry = expiry_entry.get().strip()   # FIX
+            cvv = cvv_entry.get().strip()         # FIX
 
             if not validate_card_number(card_number):
                 messagebox.showerror("Error", "Invalid card number.")
+                return
+
+            # FIX: Added expiry and CVV validation
+            if not validate_expiry(expiry):
+                messagebox.showerror("Error", "Invalid or expired expiry date. Use MM/YY format.")
+                return
+
+            if not validate_cvv(cvv):
+                messagebox.showerror("Error", "Invalid CVV. Must be 3 digits.")
                 return
 
             invoice = unpaid_invoices[selected]

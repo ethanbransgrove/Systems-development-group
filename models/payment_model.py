@@ -3,15 +3,15 @@ from database import get_connection
 def get_tenant_payments(tenant_id):
 
     """ 
-    Tenants can view their previous payments in table format in their dashboard
+    Tenants can view their previous payments in table format in their dashboard.
+    FIX: Added p.status to SELECT so the payment history table doesn't crash.
     """
-
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
     query = """
-        SELECT p.amount, p.payment_date
+        SELECT p.amount, p.payment_date, p.status
         FROM payment p
         JOIN lease l ON p.lease_id = l.lease_id
         WHERE l.tenant_id = %s
@@ -27,7 +27,8 @@ def get_tenant_payments(tenant_id):
 def create_payment(invoice_id, lease_id, amount, card_number):
 
     """
-    Logs payments in database and updates invoice status
+    Logs payments in database and updates invoice status.
+    Security: Only last 4 digits of card stored — never the full number.
     """
 
     conn = get_connection()
@@ -95,7 +96,6 @@ def get_neighbour_payment_totals(tenant_id):
     """
     Facilitates graph creation in the tenant dashboard to allow tenants to view how much there neighbours pay.
     """
-
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
