@@ -134,7 +134,7 @@ class TenantFrame(tk.Frame):
                   font=("Arial",10,"bold"),
                   command=self.view_neighbour_graph).pack(pady=5)
         
-        
+
 
         # Logout button
         tk.Button(self,
@@ -154,7 +154,6 @@ class TenantFrame(tk.Frame):
         """
         
         super().tkraise(*args, **kwargs)
-
 
         user = self.controller.current_user
         
@@ -202,14 +201,14 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         payments = get_tenant_payments(user["tenant_id"])
 
-        # FIX: Added Status column to match what payment_model now returns
-        columns = ("Amount", "Date", "Status")
+        # Reverted back to original two columns
+        columns = ("Amount", "Date")
 
         tree = ttk.Treeview(popup, columns=columns, show="headings")
 
         for col in columns:
             tree.heading(col, text=col)
-            tree.column(col, width=180)
+            tree.column(col, width=200)
 
         scrollbar = ttk.Scrollbar(popup, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -218,14 +217,13 @@ class TenantFrame(tk.Frame):
         tree.pack(fill="both", expand=True)
 
         if not payments:
-            tree.insert("", "end", values=("No payments found", "", ""))
+            tree.insert("", "end", values=("No payments found", ""))
             return
 
         for payment in payments:
             tree.insert("", "end", values=(
                 f"£{payment['amount']}",
-                payment["payment_date"],
-                payment.get("status", "PAID")  # FIX: safely get status with fallback
+                payment["payment_date"]
             ))
     
 
@@ -264,7 +262,7 @@ class TenantFrame(tk.Frame):
         def submit():
 
             description = description_box.get("1.0", tk.END).strip()
-            priority = priority_var.get()  # FIX: capture priority
+            priority = priority_var.get()
             user = self.controller.current_user
 
             if not description:
@@ -274,7 +272,7 @@ class TenantFrame(tk.Frame):
             success = create_maintenance_request(
                 user["tenant_id"],
                 description,
-                priority  # FIX: pass priority to model
+                priority
             )
 
             if success:
@@ -377,7 +375,7 @@ class TenantFrame(tk.Frame):
 
         popup = tk.Toplevel(self)
         popup.title("Pay Invoice")
-        popup.geometry("500x420")  # FIX: increased height to fit new fields
+        popup.geometry("500x420")
 
         user = self.controller.current_user
         tenant_id = user["tenant_id"]
@@ -427,8 +425,8 @@ class TenantFrame(tk.Frame):
                 return
 
             card_number = card_entry.get()
-            expiry = expiry_entry.get().strip()   # FIX
-            cvv = cvv_entry.get().strip()         # FIX
+            expiry = expiry_entry.get().strip()
+            cvv = cvv_entry.get().strip()
 
             if not validate_card_number(card_number):
                 messagebox.showerror("Error", "Invalid card number.")
