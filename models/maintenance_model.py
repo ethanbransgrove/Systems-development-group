@@ -2,7 +2,7 @@ from database import get_connection
 
 # ================== TENANT FUNCTIONS ==================
 
-def create_maintenance_request(tenant_id, description):
+def create_maintenance_request(tenant_id, description, priority):
     """
     Handles maintenance request creation by the tenant. The status and priority of request are set to defaults
     to be changed by staff.
@@ -14,8 +14,8 @@ def create_maintenance_request(tenant_id, description):
         cursor.execute("""
             INSERT INTO maintenance_request
             (tenant_id, description, priority, status)
-            VALUES (%s, %s, 'LOW', 'REPORTED')
-        """, (tenant_id, description))
+            VALUES (%s, %s, %s, 'REPORTED')
+        """, (tenant_id, description, priority))
 
         conn.commit()
         conn.close()
