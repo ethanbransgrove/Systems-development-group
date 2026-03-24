@@ -182,3 +182,36 @@ def create_maintenance_log(request_id, start_time, end_time, hours_spent, cost, 
         conn.close()
         print("Log error:", e)
         return False
+    
+def create_maintenance_request_by_staff(tenant_id, description, priority):
+    """
+    Create a maintenance request on behalf of a tenant with given priority.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Get active apartment for tenant
+        cursor.execute("""
+            SELECT apartment_id
+            FROM lease
+            WHERE tenant_id = %s AND status = 'ACTIVE'
+            LIMIT 1
+        """, (tenant_id,))
+        result = cursor.fetchone()
+        if not result:
+            conn.close()
+            return False
+        apartment_id = result[0]
+        cursor.execute("""
+            INSERT INTO maintenance_request
+            (tenant_id, apartment_id, description, priority, status)
+            VALUES (%s, %s, %s, %s, 'REPORTED')
+        """, (tenant_id, apartment_id, description, priority))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print("Maintenance request error:", e)
+        return False

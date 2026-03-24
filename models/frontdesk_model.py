@@ -93,3 +93,46 @@ def register_new_tenant(tenant_data, start_date, end_date, apartment_id, branch_
         conn.close()
         print("Registration Error:", e)
         return False
+    
+def get_tenants_by_branch(branch_id):
+    """
+    Fetch all tenants associated with a given branch (through apartments/properties).
+    Returns a list of tenant dictionaries with id, name, email, phone, occupation, ni_number.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT DISTINCT t.tenant_id, t.name, t.email, t.phone, t.occupation, t.ni_number
+        FROM tenant t
+        JOIN lease l ON t.tenant_id = l.tenant_id
+        JOIN apartment a ON l.apartment_id = a.apartment_id
+        JOIN property p ON a.property_id = p.property_id
+        WHERE p.branch_id = %s
+        ORDER BY t.name
+    """
+    cursor.execute(query, (branch_id,))
+    tenants = cursor.fetchall()
+    conn.close()
+    return tenants
+
+def get_tenant_details_with_lease(tenant_id):
+    """
+    Fetch detailed tenant information including current lease and apartment.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT t.*, 
+               l.lease_id, l.start_date, l.end_date, l.monthly_rent, l.status AS lease_status,
+               a.apartment_number, a.type, a.rooms,
+               p.name AS property_name, p.address AS property_address
+        FROM tenant t
+        LEFT JOIN lease l ON t.tenant_id = l.tenant_id AND l.status = 'ACTIVE'
+        LEFT JOIN apartment a ON l.apartment_id = a.apartment_id
+        LEFT JOIN property p ON a.property_id = p.property_id
+        WHERE t.tenant_id = %s
+    """
+    cursor.execute(query, (tenant_id,))
+    tenant = cursor.fetchone()
+    conn.close()
+    return tenant
