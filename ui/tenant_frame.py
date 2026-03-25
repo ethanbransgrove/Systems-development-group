@@ -157,7 +157,7 @@ class TenantFrame(tk.Frame):
                   font=("Arial",11,"bold"),
                   bg="#d9534f",
                   fg="white",
-                  command=self.logout).pack(pady=25)
+                  command=self.logout).pack(side="bottom")
 
 
     def tkraise(self, *args, **kwargs):
@@ -538,7 +538,7 @@ class TenantFrame(tk.Frame):
     def view_monthly_graph(self):
 
         """
-        As part of the project tenants are able to see graphical representations of their payments.
+        Tenants are able to see graphical representations of their payments.
 
         This function displays a graph which shows how much money the tenant has paid in total that month
 
@@ -583,7 +583,7 @@ class TenantFrame(tk.Frame):
     def view_neighbour_graph(self):
         
         """
-        As per the project tenants can also see a graphical representation of there payment totals as
+        Tenants can also see a graphical representation of there payment totals as
         compared to their neighbours in the same building.
 
         This is a bar chart with the neighbour name and the total they have spent.
@@ -628,7 +628,7 @@ class TenantFrame(tk.Frame):
     def view_late_payments_graph(self):
 
         """
-        As a requirement for the project tenants can see a graphical representation the total amount of 
+        Tenants can see a graphical representation the total amount of 
         late payments due in their building.
 
         If all tenants in the building have paid their invoice then the graph will not display.
