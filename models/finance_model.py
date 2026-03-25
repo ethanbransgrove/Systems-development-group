@@ -119,3 +119,96 @@ def generate_next_invoice(lease_id):
         conn.close()
         print("Invoice generation error:", e)
         return False
+    
+
+def get_all_payments():
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT p.payment_id, p.amount, payment_date, t.name AS tenant_name
+        FROM payment p
+        JOIN lease l ON p.lease_id = l.lease_id
+        JOIN tenant t ON l.tenant_id = t.tenant_id
+        ORDER BY p.payment_date DESC
+    """
+
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    conn.close()
+    return data
+
+
+def get_all_invoices():
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT i.invoice_id, i.amount_due, i.due_date, i.status, t.name AS tenant_name
+        FROM invoice i
+        JOIN lease l ON i.lease_id = l.lease_id
+        JOIN tenant t ON l.tenant_id = t.tenant_id
+        ORDER BY i.due_date DESC
+    """
+
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    conn.close()
+    return data
+
+
+def get_outstanding_balance():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT SUM(amount_due)
+        FROM invoice
+        WHERE status != 'PAID'
+    """)
+
+    result = cursor.fetchone()[0]
+
+    conn.close()
+    return result if result else 0
+
+
+def get_late_payment_count():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM invoice
+        WHERE status = 'LATE'
+    """)
+
+    count = cursor.fetchone()[0]
+
+    conn.close()
+    return count
+
+
+def get_monthly_revenue():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount)
+        FROM payment
+        GROUP BY month
+        ORDER BY month
+    """)
+
+    data = cursor.fetchall()
+
+    conn.close()
+    return data
+
