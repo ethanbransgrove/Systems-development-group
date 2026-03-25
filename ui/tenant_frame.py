@@ -42,7 +42,7 @@ class TenantFrame(tk.Frame):
             pady=5
         )
 
-        self.warning_label.pack(pady=5, fill="x")
+        self.warning_label.pack(side= "bottom", fill="x")
         self.warning_label.pack_forget()
 
         # Main dashboard container
@@ -128,7 +128,7 @@ class TenantFrame(tk.Frame):
 
         # Analytics Section
         analytics_frame = tk.LabelFrame(dashboard, text="Tenant Analytics", padx=20, pady=15)
-        analytics_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=10, sticky="nsew")
+        analytics_frame.grid(row=2, column=0, columnspan=2, padx=15, pady=5, sticky="nsew")
 
         tk.Button(analytics_frame,
                   text="Monthly Payment Graph",
@@ -154,7 +154,7 @@ class TenantFrame(tk.Frame):
         tk.Button(self,
                   text="Logout",
                   width=25,
-                  font=("Arial",11,"bold"),
+                  font=("Arial",10,"bold"),
                   bg="#d9534f",
                   fg="white",
                   command=self.logout).pack(side="bottom")
