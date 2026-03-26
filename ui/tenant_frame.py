@@ -9,9 +9,9 @@ from models.analytics_model import get_late_payments_per_property
 from models.user_model import update_user_password
 from utils.validators import validate_card_number, validate_expiry, validate_cvv, check_password_strength
 
-"""  
+"""
 This is the Tenant dashboard as required by the Systems development group project. 
-Which is an extension of the ASD project.
+Which is described as an extension of the ASD project.
 """
 
 class TenantFrame(tk.Frame):
@@ -176,20 +176,24 @@ class TenantFrame(tk.Frame):
             tenant_id = user["tenant_id"]
             user_id = user["user_id"]
 
-            tenant = get_tenant_details(tenant_id)
+            tenant = self.safe_call(get_tenant_details, tenant_id)
+            if not tenant:
+                return
 
             self.info_label.config(
                 text=f"Welcome {tenant['name']} | Email: {tenant['email']}"
             )
 
             # Update invoice status
-            update_late_invoices(tenant_id)
+            self.safe_call(update_late_invoices,tenant_id)
 
             # Create notifications if invoices are late
-            create_late_payment_notification(user_id, tenant_id)
+            self.safe_call(create_late_payment_notification, user_id, tenant_id)
 
 
-            late_count = get_late_invoice_count(tenant_id)
+            late_count = self.safe_call(get_late_invoice_count, tenant_id)
+            if late_count is None:
+                return
 
             if late_count > 0:
                 self.warning_label.config(
@@ -201,7 +205,9 @@ class TenantFrame(tk.Frame):
 
 
             # Get unread notifications
-            notifications = get_unread_notifications(user_id)
+            notifications = self.safe_call(get_unread_notifications, user_id)
+            if notifications is None:
+                return
 
             if notifications:
 
@@ -211,6 +217,22 @@ class TenantFrame(tk.Frame):
                     "Notifications",
                     messages
                 )
+
+    
+    def safe_call(self, func, *args):
+        """
+        In the event that database is not connected this function ensures 
+        application doesn't crash.
+        """
+
+        try:
+            return func(*args)
+        except Exception:
+            messagebox.showerror(
+                "Database Error",
+                "Database connection lost. Please try again."
+            )
+            return None
 
 
     def view_payments(self):
@@ -225,7 +247,10 @@ class TenantFrame(tk.Frame):
         popup.geometry("600x400")
 
         user = self.controller.current_user
-        payments = get_tenant_payments(user["tenant_id"])
+        payments = self.safe_call(get_tenant_payments, user["tenant_id"])
+        if payments is None:
+            popup.destroy()
+            return
 
         columns = ("Amount", "Date")
 
@@ -361,9 +386,12 @@ class TenantFrame(tk.Frame):
         tenant_id = user["tenant_id"]
 
         # Automatically update late invoices first
-        update_late_invoices(tenant_id)
+        self.safe_call(update_late_invoices, tenant_id)
 
-        invoices = get_tenant_invoices(tenant_id)
+        invoices = self.safe_call(get_tenant_invoices, tenant_id)
+        if invoices is None:
+            popup.destroy()
+            return
 
         columns = ("ID", "Period", "Amount", "Due Date", "Status")
 
@@ -405,7 +433,10 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         tenant_id = user["tenant_id"]
 
-        invoices = get_tenant_invoices(tenant_id)
+        invoices = self.safe_call(get_tenant_invoices, tenant_id)
+        if invoices is None:
+            popup.destroy()
+            return
 
         # Only show unpaid invoices
         unpaid_invoices = [i for i in invoices if i["status"] != "PAID"]
@@ -504,7 +535,11 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         user_id = user["user_id"]
 
-        notifications = get_all_notifications(user_id)
+        notifications = self.safe_call(get_all_notifications, user_id)
+
+        if notifications is None:
+            popup.destroy()
+            return
 
         columns = ("Message", "Type", "Status", "Date")
 
@@ -556,7 +591,10 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         tenant_id = user["tenant_id"]
 
-        data = get_monthly_payments(tenant_id)
+        data = self.safe_call(get_monthly_payments, tenant_id)
+        if data is None:
+            popup.destroy()
+            return
 
         if not data:
             messagebox.showinfo("Info", "No payment data available.")
@@ -599,7 +637,10 @@ class TenantFrame(tk.Frame):
         user = self.controller.current_user
         tenant_id = user["tenant_id"]
 
-        data = get_neighbour_payment_totals(tenant_id)
+        data = self.safe_call(get_neighbour_payment_totals, tenant_id)
+        if data is None:
+            popup.destroy()
+            return
 
         if not data:
             messagebox.showinfo("Info", "No data available.")
@@ -643,7 +684,10 @@ class TenantFrame(tk.Frame):
         popup.title("Late Payments by Property")
         popup.geometry("700x500")
 
-        data = get_late_payments_per_property()
+        data = self.safe_call(get_late_payments_per_property)
+        if data is None:
+            popup.destroy()
+            return
 
         if not data:
             messagebox.showinfo("Info", "No late payments found.")
@@ -686,7 +730,10 @@ class TenantFrame(tk.Frame):
         popup.geometry("700x400")
 
         user = self.controller.current_user
-        complaints = get_tenant_complaints(user["tenant_id"])
+        complaints = self.safe_call(get_tenant_complaints, user["tenant_id"])
+        if complaints is None:
+            popup.destroy()
+            return
 
         columns = ("ID", "Description", "Status", "Date")
 
@@ -719,7 +766,7 @@ class TenantFrame(tk.Frame):
         popup.geometry("750x400")
 
         user = self.controller.current_user
-        requests = get_tenant_maintenance_requests(user["tenant_id"])
+        requests = self.safe_call(get_tenant_maintenance_requests, user["tenant_id"])
 
         columns = ("ID", "Description", "Priority", "Status", "Date")
 

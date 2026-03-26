@@ -28,11 +28,25 @@ class LoginFrame(tk.Frame):
 
         tk.Button(self, text="Login", command=self.login).pack(pady=20)
 
+    
+    def safe_call(self, func, *args):
+        try:
+            return func(*args)
+        except Exception:
+            messagebox.showerror(
+                "Database Error",
+                "Database connection lost. Please try again."
+            )
+            return None
+
+
     def login(self):
         email = self.email_entry.get()
         password = self.password_entry.get()
 
-        user = login_user(email, password)
+        user = self.safe_call(login_user, email, password)
+        if user is None:
+            return
 
         if user:
             self.controller.set_user(user)
