@@ -1,5 +1,3 @@
-# models/admin_model.py
-
 import re
 from database import get_connection
 from utils.auth import hash_password
