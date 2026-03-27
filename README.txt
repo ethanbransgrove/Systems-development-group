@@ -13,6 +13,7 @@ To run:
 python main.py
 
 Database setup:
+SQL dump found in project folder "ParagonDatabaseDump.sql"
 
 DB_HOST = "127.0.0.1"
 DB_USER = "your_username"
