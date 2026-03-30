@@ -1,3 +1,5 @@
+# Group B3, Rory Foley (23071664), Zuhaib Asif (23039419), Ethan Bransgrove (23079243), Rodrigo Garrabou Socias (23018284)
+
 import tkinter as tk
 from tkinter import messagebox, ttk
 from models.tenant_model import get_tenant_details, get_tenant_invoices, update_late_invoices, create_late_payment_notification, get_late_invoice_count

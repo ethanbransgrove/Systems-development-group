@@ -1,3 +1,5 @@
+# Group B3, Rory Foley (23071664), Zuhaib Asif (23039419), Ethan Bransgrove (23079243), Rodrigo Garrabou Socias (23018284)
+
 import tkinter as tk
 from tkinter import messagebox, ttk
 from models.frontdesk_model import get_available_apartments, register_new_tenant, get_tenants_by_branch, get_tenant_details_with_lease
